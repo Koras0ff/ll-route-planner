@@ -211,7 +211,7 @@ async function run(){
     const cov = CITY_STREET_M[city] ? (100*totalWalk/CITY_STREET_M[city]) : 0;
     document.getElementById('status').innerHTML =
       '<span>'+city+' — '+res.areas.length+' clusters, '+pts+' points · ~'+fmtLen(avgWalk)+' walking per cluster (~'+fmtLen(totalWalk)+' total)</span>'+
-      '<span class="note">These are straight-line distances between points, so the real walk along the streets is somewhat longer. You do not walk between clusters, only within each one. The routes cover about '+cov.toFixed(2)+'% of the city streets — this is a sample, not the whole city.</span>';
+      '<span class="note">These are straight-line distances between points, so the real walk along the streets is somewhat longer. You do not walk between clusters, only within each one. The routes cover about '+cov.toFixed(2)+'% of the city streets.</span>';
   } catch(e){
     document.getElementById('status').textContent = 'Error generating for '+city+': '+e;
     console.error(e);
