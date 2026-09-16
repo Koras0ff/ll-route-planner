@@ -41,9 +41,6 @@
   #legend #lclear { margin-left:auto; font-size:10px; color:#5b6bd6; font-weight:400; padding:0 4px; }
   #legend #lcaret { font-weight:400; margin-left:4px; }
   #legend .lrow.sel { background:#e5e9ff; font-weight:600; }
-  #budget > summary { cursor:pointer; padding:8px 12px; font-size:12px; font-weight:600; color:#555; user-select:none; list-style:none; background:var(--panel); border-bottom:1px solid var(--line); }
-  #budget > summary::before { content:'\25b8'; margin-right:6px; }
-  #budget[open] > summary::before { content:'\25be'; }
   #map { flex:1; }
   .pop { position:fixed; z-index:9999; max-width:300px; background:#1c1c22; color:#fff; font-size:12px; line-height:1.5; padding:9px 11px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.25); display:none; }
   .pop::after { content:''; position:absolute; top:-6px; left:14px; border:6px solid transparent; border-top:none; border-bottom-color:#1c1c22; }
@@ -71,10 +68,9 @@
     <div class="fld small"><label>Min. gap between clusters (m) <span class="i" title="The smallest allowed distance between two clusters, in metres, useful for small cities so clusters do not overlap. Higher = forces clusters further apart (in a tiny city you may get fewer clusters if they cannot fit); lower = allows closer clusters.">i</span></label><input id="min_area_distance_floor" type="number" value="300"></div>
     <div class="fld small"><label>Trim quiet edges (%) <span class="i" title="Optional. Removes the quietest X% of the street network first (the sparse, rural-like edges with few streets and usually few signs), so the sample concentrates on the built-up city instead of scattering to the outskirts. 0 = off, use the whole city. For a large, sprawling city like Tbilisi try 30-40; small or compact cities usually need 0.">i</span></label><input id="trim_pct" type="number" value="0" min="0" max="90"></div>
     <div class="fld small"><label>Random seed <span class="i" title="You normally do NOT need to change this. It fixes the randomness so the same city and settings always give exactly the same points, keeping your sampling reproducible. Only change it if you deliberately want a different random layout.">i</span></label><input id="seed" type="number" value="42"><span style="font-size:10px;color:#8a8a92;margin-top:2px;">usually leave as is</span></div>
-  </div></details>
-  <details id="budget"><summary>Plan by fieldwork budget (approximate)</summary><div id="advbar">
+    <div style="flex-basis:100%;border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-size:12px;font-weight:600;color:#555;">Plan by fieldwork budget (approximate)</div>
     <div class="fld small"><label>Days <span class="i" title="Fieldwork days per city.">i</span></label><input id="bud_days" type="number" value="4" min="1"></div>
-    <div class="fld small"><label>Hours/day <span class="i" title="Productive fieldwork hours per day.">i</span></label><input id="bud_hours" type="number" value="6" min="1"></div>
+    <div class="fld small"><label>Hours/day <span class="i" title="Productive fieldwork hours per day.">i</span></label><input id="bud_hours" type="number" value="4" min="1"></div>
     <div class="fld small"><label>Min per cluster <span class="i" title="Estimated minutes spent INSIDE one cluster (walking between its points + photographing). Raise it for sign-dense areas.">i</span></label><input id="bud_min" type="number" value="40" min="1"></div>
     <button id="bud_apply">Suggest &amp; apply</button>
     <span id="bud_out" class="note" style="flex-basis:100%; margin-top:2px;"></span>
@@ -245,7 +241,7 @@ function updateBudget(apply){
   const maxc=Math.floor(d*h*60/m);
   const buffered=Math.max(1,Math.floor(maxc*0.8));
   document.getElementById('bud_out').textContent =
-    'Approximately '+maxc+' clusters can fit the in-cluster time. This counts ONLY the time spent inside clusters (walking between points + photographing); it ignores travel between clusters, so your real capacity is lower. Suggested target with buffer: '+buffered+' clusters.';
+    'About '+maxc+' clusters fit your fieldwork time. This counts only the time spent inside each cluster — walking between its points and photographing — not the travel between clusters, so in practice you will manage fewer. A safer target is '+buffered+' clusters.';
   if(apply && maxc>0){ document.getElementById('num_areas').value=buffered; run(); }
 }
 
