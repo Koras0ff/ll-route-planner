@@ -32,6 +32,18 @@
   #adv[open] > summary::before { content:'\25BE'; }
   #adv > summary:hover { color:#1c1c22; }
   #advbar { padding:2px 12px 10px; display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-end; }
+  #legend { background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:8px; font-size:12px; max-height:40vh; overflow:auto; box-shadow:0 2px 10px rgba(0,0,0,.18); min-width:112px; }
+  #legend .lhead { cursor:pointer; padding:6px 10px; font-weight:600; user-select:none; border-bottom:1px solid var(--line); }
+  #legend .lrow { display:flex; align-items:center; gap:7px; padding:4px 10px; cursor:pointer; }
+  #legend .lrow:hover { background:#eef; }
+  #legend .sw { width:12px; height:12px; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.25); flex:none; }
+  #legend .lhead { display:flex; align-items:center; }
+  #legend #lclear { margin-left:auto; font-size:10px; color:#5b6bd6; font-weight:400; padding:0 4px; }
+  #legend #lcaret { font-weight:400; margin-left:4px; }
+  #legend .lrow.sel { background:#e5e9ff; font-weight:600; }
+  #budget > summary { cursor:pointer; padding:8px 12px; font-size:12px; font-weight:600; color:#555; user-select:none; list-style:none; background:var(--panel); border-bottom:1px solid var(--line); }
+  #budget > summary::before { content:'\25b8'; margin-right:6px; }
+  #budget[open] > summary::before { content:'\25be'; }
   #map { flex:1; }
   .pop { position:fixed; z-index:9999; max-width:300px; background:#1c1c22; color:#fff; font-size:12px; line-height:1.5; padding:9px 11px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.25); display:none; }
   .pop::after { content:''; position:absolute; top:-6px; left:14px; border:6px solid transparent; border-top:none; border-bottom-color:#1c1c22; }
@@ -59,6 +71,13 @@
     <div class="fld small"><label>Min. gap between clusters (m) <span class="i" title="The smallest allowed distance between two clusters, in metres, useful for small cities so clusters do not overlap. Higher = forces clusters further apart (in a tiny city you may get fewer clusters if they cannot fit); lower = allows closer clusters.">i</span></label><input id="min_area_distance_floor" type="number" value="300"></div>
     <div class="fld small"><label>Trim quiet edges (%) <span class="i" title="Optional. Removes the quietest X% of the street network first (the sparse, rural-like edges with few streets and usually few signs), so the sample concentrates on the built-up city instead of scattering to the outskirts. 0 = off, use the whole city. For a large, sprawling city like Tbilisi try 30-40; small or compact cities usually need 0.">i</span></label><input id="trim_pct" type="number" value="0" min="0" max="90"></div>
     <div class="fld small"><label>Random seed <span class="i" title="You normally do NOT need to change this. It fixes the randomness so the same city and settings always give exactly the same points, keeping your sampling reproducible. Only change it if you deliberately want a different random layout.">i</span></label><input id="seed" type="number" value="42"><span style="font-size:10px;color:#8a8a92;margin-top:2px;">usually leave as is</span></div>
+  </div></details>
+  <details id="budget"><summary>Plan by fieldwork budget (approximate)</summary><div id="advbar">
+    <div class="fld small"><label>Days <span class="i" title="Fieldwork days per city.">i</span></label><input id="bud_days" type="number" value="4" min="1"></div>
+    <div class="fld small"><label>Hours/day <span class="i" title="Productive fieldwork hours per day.">i</span></label><input id="bud_hours" type="number" value="6" min="1"></div>
+    <div class="fld small"><label>Min per cluster <span class="i" title="Estimated minutes spent INSIDE one cluster (walking between its points + photographing). Raise it for sign-dense areas.">i</span></label><input id="bud_min" type="number" value="40" min="1"></div>
+    <button id="bud_apply">Suggest &amp; apply</button>
+    <span id="bud_out" class="note" style="flex-basis:100%; margin-top:2px;"></span>
   </div></details>
   <div id="status">Setting up… the first load takes a few seconds.</div>
   <div id="map"></div>
@@ -156,20 +175,48 @@ function initMap(){
     {'Railways / Metro':rail}
   ).addTo(map);
   layer=L.layerGroup().addTo(map);
+  const legend=L.control({position:'bottomleft'});
+  legend.onAdd=function(){ const d=L.DomUtil.create('div'); d.id='legend'; L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); return d; };
+  legend.addTo(map);
+}
+let clusterLayers=[];
+let selected=new Set();
+function styleCluster(cl, mode){
+  if(mode==='hi'){ cl.circle.setStyle({weight:3,opacity:1,fillOpacity:0.18}); cl.markers.forEach(m=>{ m.setStyle({opacity:1,fillOpacity:1,weight:2}); m.setRadius(10); m.bringToFront(); }); }
+  else if(mode==='dim'){ cl.circle.setStyle({weight:1,opacity:0.12,fillOpacity:0.02}); cl.markers.forEach(m=>{ m.setStyle({opacity:0.22,fillOpacity:0.22,weight:1}); m.setRadius(6); }); }
+  else { cl.circle.setStyle({weight:1,opacity:1,fillOpacity:0.05}); cl.markers.forEach(m=>{ m.setStyle({opacity:1,fillOpacity:1,weight:1.5}); m.setRadius(7); }); }
+}
+function applyHighlight(set){
+  if(!set || set.size===0){ clusterLayers.forEach(cl=>styleCluster(cl,'normal')); return; }
+  clusterLayers.forEach((cl,j)=> styleCluster(cl, set.has(j)?'hi':'dim'));
+}
+function refreshLegendSel(){ document.querySelectorAll('#legend .lrow').forEach(r=>r.classList.toggle('sel', selected.has(+r.dataset.i))); }
+function buildLegend(n){
+  const el=document.getElementById('legend'); if(!el) return;
+  selected=new Set();
+  let html='<div class="lhead" id="lhead"><span>Clusters</span> <span id="lclear" title="Clear selection">clear</span> <span id="lcaret">▾</span></div><div id="lbody">';
+  for(let i=0;i<n;i++){ html+='<div class="lrow" data-i="'+i+'"><span class="sw" style="background:'+PALETTE[i%PALETTE.length]+'"></span>Cluster '+(i+1)+'</div>'; }
+  html+='</div>'; el.innerHTML=html;
+  document.getElementById('lhead').onclick=function(){ const b=document.getElementById('lbody'); const open=b.style.display!=='none'; b.style.display=open?'none':''; document.getElementById('lcaret').textContent=open?'▸':'▾'; };
+  document.getElementById('lclear').onclick=function(e){ e.stopPropagation(); selected.clear(); applyHighlight(selected); refreshLegendSel(); };
+  el.querySelectorAll('.lrow').forEach(function(row){ const i=+row.dataset.i;
+    row.onclick=function(){ if(selected.has(i)) selected.delete(i); else selected.add(i); applyHighlight(selected); refreshLegendSel(); };
+    row.onmouseenter=function(){ const sset=new Set(selected); sset.add(i); applyHighlight(sset); };
+    row.onmouseleave=function(){ applyHighlight(selected); };
+  });
 }
 function draw(city, res){
-  layer.clearLayers();
+  layer.clearLayers(); clusterLayers=[];
   const maxw=parseFloat(document.getElementById('max_walk_dist').value);
   const bounds=[];
   res.areas.forEach((cluster,ai)=>{
     const color=PALETTE[ai%PALETTE.length];
-    L.circle(cluster[0],{radius:maxw, color, weight:1, fillOpacity:0.05}).addTo(layer);
-    cluster.forEach((p,pi)=>{
-      L.circleMarker(p,{radius:7, color:'#fff', weight:1.5, fillColor:color, fillOpacity:1}).bindPopup(city+'-Cluster'+(ai+1)+'-P'+(pi+1)).addTo(layer);
-      bounds.push(p);
-    });
+    const circle=L.circle(cluster[0],{radius:maxw, color, weight:1, fillOpacity:0.05}).addTo(layer);
+    const markers=cluster.map((p,pi)=>{ bounds.push(p); return L.circleMarker(p,{radius:7, color:'#fff', weight:1.5, fillColor:color, fillOpacity:1}).bindPopup(city+'-Cluster'+(ai+1)+'-P'+(pi+1)).addTo(layer); });
+    clusterLayers.push({circle:circle, markers:markers});
   });
   if(bounds.length) map.fitBounds(bounds,{padding:[40,40]}); else map.setView(CENTERS[city],13);
+  buildLegend(res.areas.length);
 }
 function readParams(){ const num=id=>parseFloat(document.getElementById(id).value);
   return { num_areas:Math.round(num('num_areas')), points_per_area:Math.round(num('points_per_area')),
@@ -191,6 +238,16 @@ function tourLength(pts){
   return total;
 }
 function setBusy(b){ ['gen','dlkml','dlhtml','city','trim_pct','num_areas','points_per_area','min_distance','max_walk_dist','density_radius','area_spacing_ratio','min_area_distance_floor','seed'].forEach(id=>document.getElementById(id).disabled=b); }
+function updateBudget(apply){
+  const d=parseFloat(document.getElementById('bud_days').value)||0;
+  const h=parseFloat(document.getElementById('bud_hours').value)||0;
+  const m=parseFloat(document.getElementById('bud_min').value)||1;
+  const maxc=Math.floor(d*h*60/m);
+  const buffered=Math.max(1,Math.floor(maxc*0.8));
+  document.getElementById('bud_out').textContent =
+    'Approximately '+maxc+' clusters can fit the in-cluster time. This counts ONLY the time spent inside clusters (walking between points + photographing); it ignores travel between clusters, so your real capacity is lower. Suggested target with buffer: '+buffered+' clusters.';
+  if(apply && maxc>0){ document.getElementById('num_areas').value=buffered; run(); }
+}
 
 async function run(){
   if(!runCity) return;
@@ -211,7 +268,7 @@ async function run(){
     const cov = CITY_STREET_M[city] ? (100*totalWalk/CITY_STREET_M[city]) : 0;
     document.getElementById('status').innerHTML =
       '<span>'+city+' — '+res.areas.length+' clusters, '+pts+' points · ~'+fmtLen(avgWalk)+' walking per cluster (~'+fmtLen(totalWalk)+' total)</span>'+
-      '<span class="note">These are straight-line distances between points, so the real walk along the streets is somewhat longer. You do not walk between clusters, only within each one. The routes cover about '+cov.toFixed(2)+'% of the city streets — this is a sample, not the whole city.</span>';
+      '<span class="note">These are straight-line distances between points, so the real walk along the streets is somewhat longer. You do not walk between clusters, only within each one. The routes cover about '+cov.toFixed(2)+'% of the city streets.</span>';
   } catch(e){
     document.getElementById('status').textContent = 'Error generating for '+city+': '+e;
     console.error(e);
@@ -249,6 +306,9 @@ initMap();
   document.getElementById('city').onchange=run;
   document.getElementById('dlkml').onclick=()=>{ if(lastResult) download(lastCity+'_points.kml', toKML(lastCity,lastResult), 'application/vnd.google-earth.kml+xml'); };
   document.getElementById('dlhtml').onclick=()=>{ if(lastResult) download(lastCity+'_map.html', toStandaloneHTML(lastCity,lastResult), 'text/html'); };
+  document.getElementById('bud_apply').onclick=()=>updateBudget(true);
+  ['bud_days','bud_hours','bud_min'].forEach(id=>document.getElementById(id).oninput=()=>updateBudget(false));
+  updateBudget(false);
   const pop=document.createElement('div'); pop.className='pop'; document.body.appendChild(pop);
   document.addEventListener('click', function(e){
     const ic=e.target.closest('.i');
