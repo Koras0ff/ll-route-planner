@@ -41,7 +41,25 @@
   #legend #lclear { margin-left:auto; font-size:10px; color:#5b6bd6; font-weight:400; padding:0 4px; }
   #legend #lcaret { font-weight:400; margin-left:4px; }
   #legend .lrow.sel { background:#e5e9ff; font-weight:600; }
+  #about { border-bottom:1px solid var(--line); background:#fbfbfc; }
+  #about > summary { cursor:pointer; padding:8px 12px; font-size:12px; font-weight:600; color:#555; user-select:none; list-style:none; }
+  #about > summary::before { content:'\25B8'; margin-right:6px; }
+  #about[open] > summary::before { content:'\25BE'; }
+  #about > summary:hover { color:#1c1c22; }
+  #aboutbody { padding:2px 14px 14px; font-size:12px; color:#3a3a42; line-height:1.55; max-width:780px; }
+  #aboutbody h4 { font-size:12px; margin:13px 0 4px; color:#1c1c22; }
+  #aboutbody p { margin:5px 0; }
+  #aboutbody ul, #aboutbody ol { margin:4px 0; padding-left:18px; }
+  #aboutbody li { margin:4px 0; }
+  #aboutbody .k { font-weight:600; color:#1c1c22; }
+  #aboutbody a { color:#5b6bd6; text-decoration:none; }
+  #aboutbody a:hover { text-decoration:underline; }
   #map { flex:1; }
+  .dd { position:relative; display:inline-block; }
+  .ddmenu { display:none; position:absolute; z-index:500; top:calc(100% + 4px); left:0; background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 4px 14px rgba(0,0,0,.18); overflow:hidden; }
+  .dd.open .ddmenu { display:block; }
+  .ddmenu button { display:block; width:100%; text-align:left; border:none; border-radius:0; background:#fff; padding:8px 12px; white-space:nowrap; font-size:12.5px; }
+  .ddmenu button:hover { background:#eef; }
   .pop { position:fixed; z-index:9999; max-width:300px; background:#1c1c22; color:#fff; font-size:12px; line-height:1.5; padding:9px 11px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.25); display:none; }
   .pop::after { content:''; position:absolute; top:-6px; left:14px; border:6px solid transparent; border-top:none; border-bottom-color:#1c1c22; }
 </style>
@@ -52,21 +70,68 @@
     <strong>Linguistic Landscape — Fieldwork Route Generator</strong>
     <span>Pick a city and press Generate to get random points grouped into small walkable clusters. In each cluster you walk between the points, photographing signs along the way. The same settings always produce the same points, so your sampling stays objective and reproducible.</span>
   </div>
+  <details id="about"><summary>About / How to use</summary><div id="aboutbody">
+    <p>This tool draws random photo points across a city, grouped into small <b>clusters</b> you can walk. In each cluster you walk between the points and photograph the public signs you pass. Because the same settings always produce the same points, your sampling is objective and anyone can reproduce it.</p>
+    <h4>Using it, step by step</h4>
+    <ol>
+      <li>Pick your <b>city</b> from the list.</li>
+      <li>Set <b>Number of clusters</b>, <b>Points per cluster</b> and <b>Cluster size</b> — or just leave the defaults.</li>
+      <li>Press <b>Generate</b>. The points appear on the map, grouped into numbered clusters.</li>
+      <li>Press <b>Download points (KML)</b> to save the points file to your computer.</li>
+      <li>Go to <b>Google My Maps</b> (mymaps.google.com), create a new map, and <b>Import</b> the KML file. Your points show up as pins.</li>
+      <li>Open that map in the <b>Google Maps app</b> on your phone (it appears under <i>Saved &rarr; Maps</i>) and walk to each point — your live location shows as a blue dot.</li>
+    </ol>
+    <p><b>Share it with your team:</b> in Google My Maps, set the map to <i>"Anyone with the link can view"</i> and send the link. Everyone who opens it on their phone sees the <b>same points</b> and their own location — so a whole team can do the fieldwork from one generated map, with no accounts or setup. (Prefer not to use Google? The <b>Download map</b> button saves a standalone map web page you can keep or share instead.)</p>
+    <h4>How the points are chosen</h4>
+    <p>The tool works only from the city's <b>walkable street network</b> — the streets and pavements you could actually walk along. From there:</p>
+    <ul>
+      <li>It leans toward the <b>busier, more built-up parts</b> of the city, because that is where public signage concentrates — so your points land where there are signs to photograph, not on empty outskirts.</li>
+      <li>It chooses the <b>cluster centres</b> one at a time in those busy areas, always keeping them a safe minimum distance apart, so clusters cover different places and never overlap.</li>
+      <li>Around each centre it drops your points on <b>nearby streets</b>, spread at least the minimum gap apart and staying within the cluster size.</li>
+      <li>Every choice is <b>random but fixed by the seed</b>, so the sample is not hand-picked and anyone can reproduce exactly the same points.</li>
+    </ul>
+    <p>So what you sample is <b>public signage along the walkable street network</b>. Parks, motorways and very quiet edges are lightly represented by design — this is a stated scope of the method, not a flaw.</p>
+
+    <h4>Main settings</h4>
+    <ul>
+      <li><span class="k">Number of clusters</span> — the separate places you visit. More &rarr; more of the city covered, but more days of fieldwork. Fewer &rarr; quicker, less coverage.</li>
+      <li><span class="k">Points per cluster</span> — photo spots inside each cluster. More &rarr; a longer walk and more photos per cluster. Fewer &rarr; a shorter route.</li>
+      <li><span class="k">Cluster size</span> — how big each cluster is (the circle on the map = the area you walk within). Larger &rarr; bigger clusters, longer walks. Smaller &rarr; tight, quick routes.</li>
+    </ul>
+
+    <h4>Advanced settings (usually fine as they are)</h4>
+    <ul>
+      <li><span class="k">Min. gap between points</span> — smallest distance between two spots in the same cluster. Higher &rarr; points more spread out (a small cluster may fit fewer). Lower &rarr; points can sit closer together.</li>
+      <li><span class="k">Busy-street pull</span> — how strongly clusters are pulled toward the busiest, most built-up parts of the city (where signs usually concentrate). Higher &rarr; pulls harder toward the single busiest centre. Lower &rarr; also allows quieter busy pockets.</li>
+      <li><span class="k">How spread out</span> — how far apart the clusters sit across the city. Higher &rarr; clusters spread further apart (more of the city). Lower &rarr; clusters sit closer to the centre (a safe minimum gap is always kept, so clusters never overlap).</li>
+      <li><span class="k">Random seed</span> — leave it at 42. It fixes the randomness so the same settings always give the same points. Change it only if you deliberately want a different random layout.</li>
+    </ul>
+
+    <h4>Plan by fieldwork budget</h4>
+    <p>Enter your days, hours per day, and minutes per cluster to get a rough idea of how many clusters fit your time. It only counts time <i>inside</i> clusters, not travel between them, so treat the number as a maximum and keep a buffer.</p>
+
+
+    <h4>For your write-up</h4>
+    <p>Note the <b>city</b> and <b>all the settings</b> you used, including the seed — that's enough for anyone to regenerate your exact points. If you compare several cities, use the <b>same settings</b> for all of them so the comparison is fair.</p>
+    <h4>Contact</h4>
+    <p>Questions or feedback: <b>Enes Yılandıloğlu</b>, University of Helsinki — <a href="mailto:enes.yilandiloglu@helsinki.fi">enes.yilandiloglu@helsinki.fi</a></p>
+  </div></details>
   <div id="bar">
     <div class="fld"><label>City <span class="i" title="The city you will do fieldwork in. Its street map is already built into this page, so nothing needs to be downloaded. Only these three cities are available.">i</span></label><select id="city"></select></div>
     <div class="fld small"><label>Number of clusters <span class="i" title="How many separate clusters you visit across the city. A cluster is a small group of nearby points you walk between, photographing signs along the way. More clusters = more of the city covered, but more travelling and time. Fewer = quicker fieldwork, less coverage.">i</span></label><input id="num_areas" type="number" value="6" min="1"></div>
     <div class="fld small"><label>Points per cluster <span class="i" title="How many points are placed inside each cluster (the first one is the centre). You walk between them, taking photos on the way. More points = a longer walking route and more photos per cluster. Fewer = a shorter route.">i</span></label><input id="points_per_area" type="number" value="4" min="1"></div>
     <div class="fld small"><label>Cluster size (m) <span class="i" title="How big each cluster is: the farthest a point can be from the cluster centre, in metres (also the circle drawn on the map). Larger = bigger clusters and longer walks; smaller = tight, quick routes.">i</span></label><input id="max_walk_dist" type="number" value="400"></div>
     <button class="primary" id="gen" disabled>Generate</button>
-    <button id="dlkml" disabled title="Save the photo spots as a KML file: open it in Google Earth, or a GPS / phone map app.">Download points (KML)</button>
-    <button id="dlhtml" disabled title="Save the current map as a standalone web page you can keep or share.">Download map</button>
+    <div class="dd" id="dlwrap"><button id="dl" disabled title="Download the generated map.">Download &#9662;</button>
+      <div class="ddmenu">
+        <button id="dlkml" title="Photo spots as a KML file: open in Google My Maps, Google Earth, or a GPS / phone map app.">Points (KML)</button>
+        <button id="dlhtml" title="The current map as a standalone web page you can keep or share.">Map (web page)</button>
+      </div></div>
   </div>
   <details id="adv"><summary>Advanced settings</summary><div id="advbar">
     <div class="fld small"><label>Min. gap between points (m) <span class="i" title="The smallest allowed distance between two points in the same cluster, in metres. Larger = points more spread out (a small cluster may end up with fewer points). Smaller = points can be closer together.">i</span></label><input id="min_distance" type="number" value="100"></div>
     <div class="fld small"><label>Busy-street pull (m) <span class="i" title="Clusters are placed with a preference for busy, built-up parts of the city (more streets, usually more signs). This sets how large a neighbourhood is checked to judge how busy a spot is. Larger = pulls harder toward the single busiest centre; smaller = also allows quieter busy pockets.">i</span></label><input id="density_radius" type="number" value="600"></div>
     <div class="fld small"><label>How spread out <span class="i" title="How far apart the clusters sit across the city, relative to the city size. Higher = clusters spread further apart (more of the city covered); lower = clusters sit closer to the centre and may start to overlap.">i</span></label><input id="area_spacing_ratio" type="number" step="0.05" value="0.15"></div>
-    <div class="fld small"><label>Min. gap between clusters (m) <span class="i" title="The smallest allowed distance between two clusters, in metres, useful for small cities so clusters do not overlap. Higher = forces clusters further apart (in a tiny city you may get fewer clusters if they cannot fit); lower = allows closer clusters.">i</span></label><input id="min_area_distance_floor" type="number" value="300"></div>
-    <div class="fld small"><label>Trim quiet edges (%) <span class="i" title="Optional. Removes the quietest X% of the street network first (the sparse, rural-like edges with few streets and usually few signs), so the sample concentrates on the built-up city instead of scattering to the outskirts. 0 = off, use the whole city. For a large, sprawling city like Tbilisi try 30-40; small or compact cities usually need 0.">i</span></label><input id="trim_pct" type="number" value="0" min="0" max="90"></div>
     <div class="fld small"><label>Random seed <span class="i" title="You normally do NOT need to change this. It fixes the randomness so the same city and settings always give exactly the same points, keeping your sampling reproducible. Only change it if you deliberately want a different random layout.">i</span></label><input id="seed" type="number" value="42"><span style="font-size:10px;color:#8a8a92;margin-top:2px;">usually leave as is</span></div>
     <div style="flex-basis:100%;border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-size:12px;font-weight:600;color:#555;">Plan by fieldwork budget (approximate)</div>
     <div class="fld small"><label>Days <span class="i" title="Fieldwork days per city.">i</span></label><input id="bud_days" type="number" value="4" min="1"></div>
@@ -139,19 +204,13 @@ def build_areas(valid_nodes, tree, hubs, points_per_area, min_dist, max_walk_dis
         areas.append(cluster)
     return areas
 
-def run_city(nodes, num_areas, points_per_area, min_distance, max_walk_dist, density_radius, area_spacing_ratio, min_area_distance_floor, seed, trim_pct):
+def run_city(nodes, num_areas, points_per_area, min_distance, max_walk_dist, density_radius, area_spacing_ratio, seed):
     valid_nodes = [(float(a), float(b)) for a, b in nodes]
     random.seed(seed); np.random.seed(seed)
     tree = BallTree(np.radians(valid_nodes), metric='haversine')
-    if trim_pct > 0:
-        dens_full = tree.query_radius(np.radians(valid_nodes), r=density_radius/6371000, count_only=True).astype(float)
-        thr = np.percentile(dens_full, trim_pct)
-        keep = dens_full >= thr
-        valid_nodes = [n for n, k in zip(valid_nodes, keep) if k]
-        tree = BallTree(np.radians(valid_nodes), metric='haversine')
     arr = np.array(valid_nodes)
     city_radius = float(np.median(dist_to_point(arr, arr.mean(axis=0))))
-    min_area_distance = max(min_area_distance_floor, area_spacing_ratio * city_radius)
+    min_area_distance = max(2 * max_walk_dist, area_spacing_ratio * city_radius)
     hubs = choose_hubs(valid_nodes, tree, num_areas, density_radius, min_area_distance)
     areas = build_areas(valid_nodes, tree, hubs, points_per_area, min_distance, max_walk_dist)
     out = [[[float(p[0]), float(p[1])] for p in cl] for cl in areas]
@@ -217,7 +276,7 @@ function draw(city, res){
 function readParams(){ const num=id=>parseFloat(document.getElementById(id).value);
   return { num_areas:Math.round(num('num_areas')), points_per_area:Math.round(num('points_per_area')),
     min_distance:num('min_distance'), max_walk_dist:num('max_walk_dist'), density_radius:num('density_radius'),
-    area_spacing_ratio:num('area_spacing_ratio'), min_area_distance_floor:num('min_area_distance_floor'), seed:Math.round(num('seed')) }; }
+    area_spacing_ratio:num('area_spacing_ratio'), seed:Math.round(num('seed')) }; }
 function fmtLen(m){ return m>=1000 ? (m/1000).toFixed(1)+' km' : Math.round(m)+' m'; }
 function hav(a,b){ const R=6371000, toR=Math.PI/180;
   const dLat=(b[0]-a[0])*toR, dLon=(b[1]-a[1])*toR;
@@ -233,7 +292,7 @@ function tourLength(pts){
   }
   return total;
 }
-function setBusy(b){ ['gen','dlkml','dlhtml','city','trim_pct','num_areas','points_per_area','min_distance','max_walk_dist','density_radius','area_spacing_ratio','min_area_distance_floor','seed'].forEach(id=>document.getElementById(id).disabled=b); }
+function setBusy(b){ ['gen','dl','city','num_areas','points_per_area','min_distance','max_walk_dist','density_radius','area_spacing_ratio','seed'].forEach(id=>document.getElementById(id).disabled=b); }
 function updateBudget(apply){
   const d=parseFloat(document.getElementById('bud_days').value)||0;
   const h=parseFloat(document.getElementById('bud_hours').value)||0;
@@ -253,7 +312,7 @@ async function run(){
   await new Promise(r=>setTimeout(r,20));
   try {
     const nodesPy=pyodide.toPy(CITY_NODES[city]);
-    const resPy=runCity(nodesPy, P.num_areas, P.points_per_area, P.min_distance, P.max_walk_dist, P.density_radius, P.area_spacing_ratio, P.min_area_distance_floor, P.seed, parseFloat(document.getElementById('trim_pct').value)||0);
+    const resPy=runCity(nodesPy, P.num_areas, P.points_per_area, P.min_distance, P.max_walk_dist, P.density_radius, P.area_spacing_ratio, P.seed);
     const res=resPy.toJs({dict_converter:Object.fromEntries});
     resPy.destroy(); nodesPy.destroy();
     lastResult=res; lastCity=city; draw(city,res);
@@ -300,13 +359,16 @@ initMap();
   if(CITY_NODES['Tbilisi']) sel.value='Tbilisi';
   document.getElementById('gen').onclick=run;
   document.getElementById('city').onchange=run;
-  document.getElementById('dlkml').onclick=()=>{ if(lastResult) download(lastCity+'_points.kml', toKML(lastCity,lastResult), 'application/vnd.google-earth.kml+xml'); };
-  document.getElementById('dlhtml').onclick=()=>{ if(lastResult) download(lastCity+'_map.html', toStandaloneHTML(lastCity,lastResult), 'text/html'); };
+  const dlwrap=document.getElementById('dlwrap');
+  document.getElementById('dl').onclick=(e)=>{ e.stopPropagation(); dlwrap.classList.toggle('open'); };
+  document.getElementById('dlkml').onclick=()=>{ dlwrap.classList.remove('open'); if(lastResult) download(lastCity+'_points.kml', toKML(lastCity,lastResult), 'application/vnd.google-earth.kml+xml'); };
+  document.getElementById('dlhtml').onclick=()=>{ dlwrap.classList.remove('open'); if(lastResult) download(lastCity+'_map.html', toStandaloneHTML(lastCity,lastResult), 'text/html'); };
   document.getElementById('bud_apply').onclick=()=>updateBudget(true);
   ['bud_days','bud_hours','bud_min'].forEach(id=>document.getElementById(id).oninput=()=>updateBudget(false));
   updateBudget(false);
   const pop=document.createElement('div'); pop.className='pop'; document.body.appendChild(pop);
   document.addEventListener('click', function(e){
+    if(!e.target.closest('#dlwrap')) document.getElementById('dlwrap').classList.remove('open');
     const ic=e.target.closest('.i');
     if(ic){
       e.stopPropagation();
