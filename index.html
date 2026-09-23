@@ -155,6 +155,7 @@ const T = {
   esriStreet:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
   esriTopo:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
   esriImg:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  esriLight:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
   osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   rail:'https://a.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png'
 };
@@ -224,9 +225,10 @@ function initMap(){
   baseStreet=L.tileLayer(T.esriStreet,{attribution:'Tiles (c) Esri', maxZoom:19}).addTo(map);
   const topo=L.tileLayer(T.esriTopo,{attribution:'Tiles (c) Esri', maxZoom:19});
   const img=L.tileLayer(T.esriImg,{attribution:'Tiles (c) Esri', maxZoom:19});
+  const light=L.tileLayer(T.esriLight,{attribution:'Tiles (c) Esri', maxZoom:19});
   const rail=L.tileLayer(T.rail,{attribution:'(c) OpenRailwayMap', maxZoom:19, opacity:0.9});
   L.control.layers(
-    {'Esri Streets':baseStreet, 'Esri Topographic':topo, 'Satellite':img},
+    {'Esri Light':light, 'Esri Streets':baseStreet, 'Esri Topographic':topo, 'Satellite':img},
     {'Railways / Metro':rail}
   ).addTo(map);
   layer=L.layerGroup().addTo(map);
